@@ -67,7 +67,7 @@ def dqn_pixel_atari(name):
     config.double_q = False
     config.max_steps = int(5e6)
     config.save_interval = 50000
-    config.tag = 'DRQN-vanilla-1frame-Seaquest'
+    config.tag = 'DRQN-vanilla-1frame-Beamrider'
     config.logger = get_logger(tag=dqn_pixel_atari.__name__)
     run_steps(DRQNAgent(config))
 
