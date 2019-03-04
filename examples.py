@@ -459,7 +459,7 @@ if __name__ == '__main__':
     # ppo_continuous('HalfCheetah-v2')
     # ddpg_continuous('HalfCheetah-v2')
 
-    game = 'SeaquestNoFrameskip-v0'
+    game = 'BeamriderNoFrameskip-v0'
     dqn_pixel_atari(game)
     # quantile_regression_dqn_pixel_atari(game)
     # categorical_dqn_pixel_atari(game)
