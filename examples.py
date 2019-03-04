@@ -60,7 +60,7 @@ def dqn_pixel_atari(name):
     config.reward_normalizer = SignNormalizer()
     config.discount = 0.99
     config.target_network_update_freq = 10000
-    config.exploration_steps = 5000
+    config.exploration_steps = 50000
     config.sgd_update_frequency = 4
     config.gradient_clip = 5
     # config.double_q = True
