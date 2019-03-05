@@ -55,7 +55,7 @@ class BaseAgent:
     def evaluation_action(self, state):
         self.config.state_normalizer.set_read_only()
         state = self.config.state_normalizer(np.stack([state]))
-        q = self.network(state, to_numpy=True)
+        q = self.network(state).detach()
         action = epsilon_greedy(self.eval_epsilon, q)
         self.config.state_normalizer.unset_read_only()
         return action         

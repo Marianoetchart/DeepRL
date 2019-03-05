@@ -40,7 +40,7 @@ def dqn_pixel_atari(name):
     log_dir = get_default_log_dir(dqn_pixel_atari.__name__)
     config.task_fn = lambda: Task(name, log_dir=log_dir, frame_stack = config.history_length)
     config.eval_env = config.task_fn()
-    config.evaluation_env = config.task_fn
+    #config.evaluation_env = config.task_fn
 
     #config.optimizer_fn = lambda params: torch.optim.RMSprop(
     #    params, lr=0.00025, alpha=0.95, eps=0.01, centered=True)
