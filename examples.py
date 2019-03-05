@@ -5,6 +5,7 @@
 #######################################################################
 
 from deep_rl import *
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # DQN
 def dqn_cart_pole():
