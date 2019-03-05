@@ -452,7 +452,7 @@ if __name__ == '__main__':
     set_one_thread()
     random_seed()
     #select_device(-1)
-    select_device(1)
+    select_device(0)
 
     # dqn_cart_pole()
     # quantile_regression_dqn_cart_pole()
