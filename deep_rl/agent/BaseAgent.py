@@ -54,7 +54,7 @@ class BaseAgent:
  
     def evaluation_action(self, state):
         self.config.state_normalizer.set_read_only()
-        print(state.size())
+        print(state[0].size())
         state = self.config.state_normalizer(np.stack([state]))
         print(state.size())
         q = self.network(state)
