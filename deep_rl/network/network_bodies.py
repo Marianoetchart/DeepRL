@@ -60,6 +60,8 @@ class DRQNBody(nn.Module):
             self.hidden = self.repackage_hidden(self.hidden)
             self.reset_flag = False
         
+        self.init_hidden()
+
         ycat = torch.Tensor()
         xchunks= torch.chunk(x,self.unroll, 1)
         output = torch.Tensor()

@@ -44,12 +44,14 @@ def dqn_pixel_atari(name):
 
     #config.optimizer_fn = lambda params: torch.optim.RMSprop(
     #    params, lr=0.00025, alpha=0.95, eps=0.01, centered=True)
+    #config.optimizer_schedule= lambda params: torch.optim.lr_scheduler(
+    #    optimizer, lr_lambda= [])
     config.optimizer_fn = lambda params: torch.optim.Adadelta(
         params, lr=0.1, rho = 0.95)
     #config.network_fn = lambda: VanillaNet(config.action_dim, NatureConvBody(in_channels=config.history_length))
     #config.network_fn = lambda: DuelingNet(config.action_dim, NatureConvBody(in_channels=config.history_length))
     config.network_fn = lambda: VanillaNet(config.action_dim, DRQNBody(in_channels=config.history_length))
-    config.random_action_prob = LinearSchedule(1.0, 0.01, 1e6)
+    config.random_action_prob = LinearSchedule(1.0, 0.01, 1e6) # changed this from 0.01 (DQN) to 0.1 
 
     # config.replay_fn = lambda: Replay(memory_size=int(1e6), batch_size=32)
     #config.replay_fn = lambda: AsyncReplay(memory_size=int(1e6), batch_size=32)
@@ -63,7 +65,7 @@ def dqn_pixel_atari(name):
     config.target_network_update_freq = 10000
     config.exploration_steps = 50000
     config.sgd_update_frequency = 1
-    config.gradient_clip = 5
+    config.gradient_clip = 10
     # config.double_q = True
     config.double_q = False
     config.max_steps = int(5e6)
