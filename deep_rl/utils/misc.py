@@ -42,6 +42,7 @@ def run_steps(agent):
         if config.max_steps and agent.total_steps >= config.max_steps:
             agent.close()
             break
+        torch.cuda.empty_cache()
         agent.step()
 
 def get_time_str():

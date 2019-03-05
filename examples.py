@@ -51,11 +51,11 @@ def dqn_pixel_atari(name):
     #config.network_fn = lambda: VanillaNet(config.action_dim, NatureConvBody(in_channels=config.history_length))
     #config.network_fn = lambda: DuelingNet(config.action_dim, NatureConvBody(in_channels=config.history_length))
     config.network_fn = lambda: VanillaNet(config.action_dim, DRQNBody(in_channels=config.history_length))
-    config.random_action_prob = LinearSchedule(1.0, 0.01, 1e6) # changed this from 0.01 (DQN) to 0.1 
+    config.random_action_prob = LinearSchedule(1.0, 0.1, 1e6) # changed this from 0.01 (DQN) to 0.1 
 
     # config.replay_fn = lambda: Replay(memory_size=int(1e6), batch_size=32)
     #config.replay_fn = lambda: AsyncReplay(memory_size=int(1e6), batch_size=32)
-    config.replay_fn = lambda: AsyncReplay(memory_size=int(400000), batch_size=32)
+    config.replay_fn = lambda: AsyncReplay(memory_size=int(500000), batch_size=32)
 
     config.async_actor = True
     config.batch_size = 32
@@ -72,7 +72,7 @@ def dqn_pixel_atari(name):
     config.save_interval = 50000
     config.eval_interval = 50000
     config.eval_steps = 25000
-    config.tag = 'DRQN-vanilla-1frame-Breakout'
+    config.tag = 'DRQN-vanilla-Breakout'
     config.logger = get_logger(tag=dqn_pixel_atari.__name__)
     run_steps(DRQNAgent(config))
 
