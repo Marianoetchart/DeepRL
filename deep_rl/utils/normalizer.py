@@ -48,7 +48,7 @@ class RescaleNormalizer(BaseNormalizer):
 
     def __call__(self, x):
         if not np.isscalar(x):
-            if type(x) == tuple or type(x) == list or not np.isscalar(x):
+            if type(x) == tuple or type(x) == list:
                 x = np.asarray(x)
             else: 
                 x = np.asarray(x.cpu())
