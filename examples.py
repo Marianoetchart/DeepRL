@@ -67,9 +67,9 @@ def dqn_pixel_atari(name):
     # config.double_q = True
     config.double_q = False
     config.max_steps = int(5e6)
-    config.save_interval = 5000
-    config.eval_interval = 5000
-    config.eval_steps = 2500
+    config.save_interval = 50000
+    config.eval_interval = 50000
+    config.eval_steps = 25000
     config.tag = 'DRQN-vanilla-1frame-Breakout'
     config.logger = get_logger(tag=dqn_pixel_atari.__name__)
     run_steps(DRQNAgent(config))

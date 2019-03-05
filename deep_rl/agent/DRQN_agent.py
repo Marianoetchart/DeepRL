@@ -82,7 +82,7 @@ class DRQNAgent(BaseAgent):
                 self.episode_rewards.append(self.episode_reward)
                 self.episode_reward = 0
                 self.episode_num +=1
-            experiences.append([state, action, reward, next_state, done ]) #, self.network.body.repackage_hidden(self.network.body.hidden)])
+            experiences.append([state, action, reward, next_state, done]) #, self.network.body.repackage_hidden(self.network.body.hidden)])
         self.replay.feed_batch(experiences)
 
         if self.total_steps > self.config.exploration_steps:
@@ -90,8 +90,6 @@ class DRQNAgent(BaseAgent):
             states, actions, rewards, next_states, terminals = experiences
             states = self.config.state_normalizer(states)
             next_states = self.config.state_normalizer(next_states)
-            #hidden =(hidden[0][0], hidden[0][1])
-            #self.target_network.body.hidden = hidden
             q_next = self.target_network(next_states).detach()
             if self.config.double_q:
                 best_actions = torch.argmax(self.network(next_states), dim=-1)
@@ -100,15 +98,12 @@ class DRQNAgent(BaseAgent):
                 q_next = q_next.max(1)[0]
             terminals = tensor(terminals)
             rewards = tensor(rewards)
-            #hidden_temp=self.network.body.hidden
-            #self.network.body.hidden = hidden
             q_next = self.config.discount * q_next * (1 - terminals)
             q_next.add_(rewards)
             actions = tensor(actions).long()
             q = self.network(states)
+            print(self.batch_indices)
             q = q[self.batch_indices, actions]
-            #self.network.body.hidden = self.network.body.repackage_hidden(hidden)
-            #self.network.body.hidden = hidden_temp
             loss = (q_next - q).pow(2).mul(0.5).mean()
             self.optimizer.zero_grad()
             loss.backward()
