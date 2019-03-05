@@ -52,8 +52,11 @@ class Config():
         self.__eval_env = None
         self.log_interval = int(1e3)
         self.save_interval = 0
-        self.eval_interval = 0
+        self.evaluation_env = False
+        self.eval_interval = 50000
         self.eval_episodes = 10
+        self.eval_steps = 1
+        self.eval_epsilon = 0.05
         self.async_actor = True
 
     @property

@@ -14,6 +14,11 @@ import sys
 class BaseAgent:
     def __init__(self, config):
         self.config = config
+        self.evaluation_env = self.config.evaluation_env
+        if self.evaluation_env is not None:
+            self.evaluation_state = self.evaluation_env.reset()
+            self.evaluation_return = 0
+            self.evalution_rewards = []
 
     def close(self):
         close_obj(self.task)
@@ -46,6 +51,30 @@ class BaseAgent:
             rewards.append(self.eval_episode())
         self.config.logger.info('evaluation episode return: %f(%f)' % (
             np.mean(rewards), np.std(rewards) / np.sqrt(len(rewards))))
+ 
+    def evaluation_action(self, state):
+        self.config.state_normalizer.set_read_only()
+        state = self.config.state_normalizer(np.stack([state]))
+        q = self.network.predict(state, to_numpy=True)
+        action = epsilon_greedy(self.eval_epsilon, q)
+        self.config.state_normalizer.unset_read_only()
+        return action         
+
+    def evaluate(self, steps=1):
+        config = self.config
+        for _ in range(steps):
+            action = self.evaluation_action(self.evaluation_state)
+            self.evaluation_state, reward, done, _ = self.evaluation_env.step(action)
+            self.evaluation_return += reward
+            if done:
+                self.evalution_rewards.append(self.evaluation_return)
+                self.evaluation_state = self.evaluation_env.reset()
+                self.config.logger.info('evaluation episode return: %f' % (self.evaluation_return))
+                self.evaluation_return = 0   
+        eval_rewards = self.evalution_rewards
+        self.evalution_rewards = [] 
+        return eval_rewards
+    
 
 class BaseActor(mp.Process):
     STEP = 0

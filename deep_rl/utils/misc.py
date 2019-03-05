@@ -23,24 +23,22 @@ def run_steps(agent):
     config = agent.config
     agent_name = agent.__class__.__name__
     t0 = time.time()
-    avg_reward_per_episode = [0]
+    avg_reward_per_episode = []
     while True:
         if config.save_interval and not agent.total_steps % config.save_interval \
-            and not agent.total_steps == 0:
-            rewards = agent.episode_rewards
-            avg_reward_per_episode.append(np.mean(rewards))
+            and not agent.total_steps == 0:    
             agent.save('data/model-%s-%s-%s.bin' % (agent_name, config.task_name, config.tag))
-            plot_save(range(len(avg_reward_per_episode)), avg_reward_per_episode, (agent_name,config.task_name, config.tag))
-            agent.episode_rewards = []
         if config.log_interval and not agent.total_steps % config.log_interval and len(agent.episode_rewards):
             rewards = agent.episode_rewards
-            #agent.episode_rewards = []
+            agent.episode_rewards = []
             config.logger.info('total steps %d, episode %d , returns %.2f/%.2f/%.2f/%.2f/%.2f (return/mean/median/min/max), %.2f steps/s, %s' % (
                 agent.total_steps, agent.episode_num, rewards[-1], np.mean(rewards), np.median(rewards), np.min(rewards), np.max(rewards),
                 config.log_interval / (time.time() - t0), config.tag))
             t0 = time.time()
         if config.eval_interval and not agent.total_steps % config.eval_interval:
-            agent.eval_episodes()
+            eval_rewards = agent.evaluate(config.eval_steps)
+            avg_reward_per_episode.append(np.mean(eval_rewards))
+            plot_save(range(len(avg_reward_per_episode)), avg_reward_per_episode, (agent_name,config.task_name, config.tag))
         if config.max_steps and agent.total_steps >= config.max_steps:
             agent.close()
             break
@@ -74,7 +72,7 @@ def plot_save(x, y, save_name):
     plt.figure()
     plt.clf()
     plt.plot(x, y)
-    plt.xticks(np.arange(min(x), max(x)+1, 20))
+    plt.xticks(np.arange(0, max(x)+1, 20))
     plt.xlabel('Training epochs')
     plt.ylabel('Average score per episode')
     plt.title(agent_name + task_name + tag)

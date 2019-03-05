@@ -39,7 +39,7 @@ def dqn_pixel_atari(name):
     config.history_length = 4
     log_dir = get_default_log_dir(dqn_pixel_atari.__name__)
     config.task_fn = lambda: Task(name, log_dir=log_dir, frame_stack = config.history_length)
-    config.eval_env = Task(name, episode_life=False)
+    config.evaluation_env = config.task_fn
 
     #config.optimizer_fn = lambda params: torch.optim.RMSprop(
     #    params, lr=0.00025, alpha=0.95, eps=0.01, centered=True)
@@ -61,13 +61,15 @@ def dqn_pixel_atari(name):
     config.discount = 0.99
     config.target_network_update_freq = 10000
     config.exploration_steps = 50000
-    config.sgd_update_frequency = 4
+    config.sgd_update_frequency = 1
     config.gradient_clip = 5
     # config.double_q = True
     config.double_q = False
     config.max_steps = int(5e6)
-    config.save_interval = 50000
-    config.tag = 'DRQN-vanilla-1frame-Beamrider'
+    config.save_interval = 5000
+    config.eval_interval = 5000
+    config.eval_steps = 2500
+    config.tag = 'DRQN-vanilla-1frame-Breakout'
     config.logger = get_logger(tag=dqn_pixel_atari.__name__)
     run_steps(DRQNAgent(config))
 
