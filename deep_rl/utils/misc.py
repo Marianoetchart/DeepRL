@@ -35,7 +35,7 @@ def run_steps(agent):
                 agent.total_steps, agent.episode_num, rewards[-1], np.mean(rewards), np.median(rewards), np.min(rewards), np.max(rewards),
                 config.log_interval / (time.time() - t0), config.tag))
             t0 = time.time()
-        if config.eval_interval and not agent.total_steps % config.eval_interval:
+        if config.eval_interval and not agent.total_steps % config.eval_interval and agent.total_steps != 0:
             eval_rewards = agent.evaluate(config.eval_steps)
             avg_reward_per_episode.append(np.mean(eval_rewards))
             plot_save(range(len(avg_reward_per_episode)), avg_reward_per_episode, (agent_name,config.task_name, config.tag))

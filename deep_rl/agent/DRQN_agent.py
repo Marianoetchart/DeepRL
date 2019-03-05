@@ -102,7 +102,6 @@ class DRQNAgent(BaseAgent):
             q_next.add_(rewards)
             actions = tensor(actions).long()
             q = self.network(states)
-            print(self.batch_indices)
             q = q[self.batch_indices, actions]
             loss = (q_next - q).pow(2).mul(0.5).mean()
             self.optimizer.zero_grad()
