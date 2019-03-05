@@ -14,7 +14,7 @@ import sys
 class BaseAgent:
     def __init__(self, config):
         self.config = config
-        self.evaluation_env = self.config.evaluation_env()
+        self.evaluation_env = self.config.eval_env
         if self.evaluation_env is not None:
             self.evaluation_state = self.evaluation_env.reset()
             self.evaluation_return = 0
