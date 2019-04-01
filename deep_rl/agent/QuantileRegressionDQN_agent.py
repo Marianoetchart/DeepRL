@@ -107,7 +107,7 @@ class QuantileRegressionDQNAgent(BaseAgent):
             quantiles_next = quantiles_next.t().unsqueeze(-1)
             diff = quantiles_next - quantiles
             loss = huber(diff) * (self.cumulative_density - (diff.detach() < 0).float()).abs()
-
+    
             self.optimizer.zero_grad()
             loss.mean(0).mean(1).sum().backward()
             nn.utils.clip_grad_norm_(self.network.parameters(), self.config.gradient_clip)

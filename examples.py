@@ -40,8 +40,7 @@ def dqn_pixel_atari(name):
     config.history_length = 4
     log_dir = get_default_log_dir(dqn_pixel_atari.__name__)
     config.task_fn = lambda: Task(name, log_dir=log_dir, frame_stack = config.history_length)
-    config.eval_env = config.task_fn()
-    #config.evaluation_env = config.task_fn
+    config.eval_env = Task(name, episode_life=False)
 
     config.optimizer_fn = lambda params: torch.optim.RMSprop(
         params, lr=0.00025, alpha=0.95, eps=0.01, centered=True)
@@ -49,12 +48,12 @@ def dqn_pixel_atari(name):
     #    optimizer, lr_lambda= [])
     #config.optimizer_fn = lambda params: torch.optim.Adadelta(
     #    params, lr=0.1, rho = 0.95)
-    config.network_fn = lambda: VanillaNet(config.action_dim, NatureConvBody(in_channels=config.history_length))
+    #config.network_fn = lambda: VanillaNet(config.action_dim, NatureConvBody(in_channels=config.history_length))
     #config.network_fn = lambda: DuelingNet(config.action_dim, NatureConvBody(in_channels=config.history_length))
-    #config.network_fn = lambda: VanillaNet(config.action_dim, DRQNBody(in_channels=config.history_length))
-    config.random_action_prob = LinearSchedule(1.0, 0.01, 1e6) # changed this from 0.01 (DQN) to 0.1 
+    config.network_fn = lambda: AttentionNet(config.action_dim, SpatialAttDRQNBody(in_channels=config.history_length))
+    config.random_action_prob = LinearSchedule(1.0, 0.1, 1e6) # changed this from 0.01 (DQN) to 0.1 
 
-    # config.replay_fn = lambda: Replay(memory_size=int(1e6), batch_size=32)
+    #config.replay_fn = lambda: Replay(memory_size=int(1e6), batch_size=32)
     #config.replay_fn = lambda: AsyncReplay(memory_size=int(1e6), batch_size=32)
     config.replay_fn = lambda: AsyncReplay(memory_size=int(500000), batch_size=32)
 
@@ -67,15 +66,15 @@ def dqn_pixel_atari(name):
     config.exploration_steps = 50000
     config.sgd_update_frequency = 4
     config.gradient_clip = 10
-    # config.double_q = True
+    #config.double_q = True
     config.double_q = False
     config.max_steps = int(5e6)
     config.save_interval = 50000
     config.eval_interval = 50000
     config.eval_steps = 25000
-    config.tag = 'DQN-vanilla-Breakout'
+    config.tag = 'SpatAttDRQN-Seaquest' #'DRQN-1SGD-CorrHidd-Seaquest'
     config.logger = get_logger(tag=dqn_pixel_atari.__name__)
-    run_steps(DQNAgent(config))
+    run_steps(DRQNAgent(config))
 
 # QR DQN
 def quantile_regression_dqn_cart_pole():
@@ -451,8 +450,8 @@ if __name__ == '__main__':
     mkdir('tf_log')
     set_one_thread()
     random_seed()
-    #select_device(-1)
-    select_device(0)
+    #select_device(-1) #cpu
+    select_device(0) # cuda 
 
     # dqn_cart_pole()
     # quantile_regression_dqn_cart_pole()
@@ -465,7 +464,7 @@ if __name__ == '__main__':
     # ppo_continuous('HalfCheetah-v2')
     # ddpg_continuous('HalfCheetah-v2')
 
-    game = 'BreakoutNoFrameskip-v0'
+    game = 'SeaquestNoFrameskip-v0'
     dqn_pixel_atari(game)
     # quantile_regression_dqn_pixel_atari(game)
     # categorical_dqn_pixel_atari(game)

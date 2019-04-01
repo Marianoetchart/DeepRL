@@ -103,12 +103,14 @@ class DRQNAgent(BaseAgent):
             actions = tensor(actions).long()
             q = self.network(states)
             q = q[self.batch_indices, actions]
-            loss = (q_next - q).pow(2).mul(0.5).mean()
+            #loss = (q_next - q).pow(2).mul(0.5).mean()
+            loss = F.smooth_l1_loss(q, q_next)
             self.optimizer.zero_grad()
             loss.backward()
             nn.utils.clip_grad_norm_(self.network.parameters(), self.config.gradient_clip)
             with config.lock:
                 self.optimizer.step()
+                del loss
                 if self.episode_num  % self.config.eval_episodes== 0:
                     self.target_network.body.reset_flag = True
                 

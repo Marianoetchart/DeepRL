@@ -10,7 +10,19 @@ from .network_bodies import *
 class VanillaNet(nn.Module, BaseNet):
     def __init__(self, output_dim, body):
         super(VanillaNet, self).__init__()
-        self.fc_head = layer_init(nn.Linear(body.feature_dim, output_dim))
+        self.fc_head = layer_init(nn.Linear(body.feature_dim, output_dim ))
+        self.body = body
+        self.to(Config.DEVICE)
+
+    def forward(self, x):
+        phi = self.body(tensor(x))
+        y = self.fc_head(phi)
+        return y
+
+class AttentionNet(nn.Module, BaseNet):
+    def __init__(self, output_dim, body):
+        super(AttentionNet, self).__init__()
+        self.fc_head = layer_init(nn.Linear(body.feature_dim * body.feature_dim, output_dim ))
         self.body = body
         self.to(Config.DEVICE)
 

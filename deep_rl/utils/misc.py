@@ -73,7 +73,7 @@ def plot_save(x, y, save_name):
     plt.figure()
     plt.clf()
     plt.plot(x, y)
-    plt.xticks(np.arange(0, max(x)+1, 20))
+    plt.xticks(np.arange(0, max(x)+5, 20))
     plt.xlabel('Training epochs')
     plt.ylabel('Average score per episode')
     plt.title(agent_name + task_name + tag)
