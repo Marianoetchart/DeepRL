@@ -15,7 +15,7 @@ if not (sys.version.startswith('3.5') or sys.version.startswith('3.6')):
 setup(name='deep_rl',
       packages=[package for package in find_packages()
                 if package.startswith('deep_rl')],
-      install_requires=['torch>=0.4.0',
+      install_requires=['torch>=1.0',
           'torchvision>=0.2.1',
           'gym>=0.10.5',
           'atari-py>=0.1.1',
