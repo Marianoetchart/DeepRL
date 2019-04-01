@@ -5,7 +5,7 @@
 #######################################################################
 
 from deep_rl import *
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # DQN
 def dqn_cart_pole():
@@ -72,7 +72,7 @@ def dqn_pixel_atari(name):
     config.save_interval = 50000
     config.eval_interval = 50000
     config.eval_steps = 25000
-    config.tag = 'DRQN-4SGD-CorrHidd-Seaquest'
+    config.tag = 'SpatAttDRQN-4SGD-Seaquest'#'DRQN-4SGD-CorrHidd-Seaquest'
     config.logger = get_logger(tag=dqn_pixel_atari.__name__)
     run_steps(DRQNAgent(config))
 

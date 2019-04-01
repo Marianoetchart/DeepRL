@@ -148,12 +148,12 @@ class SpatialAttDRQNBody(nn.Module):
             hidden= self.hidden[0].view(batch,-1, self.feature_dim).detach() # reshaping hidden state
             
             # Attention Network
-            ht_1 = self.att1(hidden)
+            ht_1 = hidden
             del hidden
             xt_1 = self.att1(y)
             #print("ht_1:", ht_1.size())
             #print("xt_1:", xt_1.size())
-            combined_att = ht_1.detach() + xt_1.detach()
+            combined_att = ht_1 + xt_1.detach()
             del ht_1, xt_1 
             #print(combined_att.requires_grad)
             combined_att = F.tanh(combined_att)
