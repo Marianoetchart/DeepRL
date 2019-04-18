@@ -84,7 +84,7 @@ def dqn_pixel_atari(name):
     config.eval_interval = 50000
     config.eval_steps = 25000 #25000 #for pong 10k
     #config.eval_episodes = 10
-    config.tag = 'SpatAtt-Seaquest-WithGradClp'#'DRQN-4SGDCorrHidd-50kexp'
+    config.tag = 'SpatAtt-Seaquest-WithClip'#'DRQN-4SGDCorrHidd-50kexp'
     config.logger = get_logger(tag=dqn_pixel_atari.__name__)
     
     log = "/home/mariano/Documents/DeepRL-0.3/data/model-DQNAgent-PongNoFrameskip-v4-DQN - Pong.bin" 
