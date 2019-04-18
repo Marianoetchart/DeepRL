@@ -9,7 +9,7 @@ from gym.spaces.discrete import Discrete
 from collections import deque
 
 from baselines import bench
-from baselines.common.atari_wrappers import make_atari, wrap_deepmind
+from baselines.common.atari_wrappers import make_atari, wrap_deepmind, FireResetEnv
 from baselines.common.atari_wrappers import FrameStack as FrameStack_
 from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv, VecEnv
 
@@ -21,7 +21,7 @@ except ImportError:
     pass
 
 # adapted from https://github.com/ikostrikov/pytorch-a2c-ppo-acktr/blob/master/envs.py
-def make_env(env_id, seed, rank, log_dir, episode_life=True, frame_stack = 4):
+def make_env(env_id, seed, rank, log_dir, episode_life=True, frame_stack = 4, clip_rewards = False):
     def _thunk():
         random_seed(seed)
         if env_id.startswith("dm"):
@@ -42,13 +42,14 @@ def make_env(env_id, seed, rank, log_dir, episode_life=True, frame_stack = 4):
         if is_atari:
             env = wrap_deepmind(env,
                                 episode_life=episode_life,
-                                clip_rewards=False,
+                                clip_rewards=clip_rewards,
                                 frame_stack=False,
                                 scale=False)
             obs_shape = env.observation_space.shape
             if len(obs_shape) == 3:
                 env = TransposeImage(env)
             env = FrameStack(env, frame_stack)
+
 
         return env
 
@@ -160,6 +161,19 @@ class DummyVecEnv(VecEnv):
 
     def reset(self):
         return [env.reset() for env in self.envs]
+    
+    def get_env(self):
+        return self.envs[0]
+    
+
+    def get_images(self):
+        return [env.render(mode='rgb_array') for env in self.envs]
+
+    def render(self, mode='human'):
+        if self.num_envs == 1:
+            return self.envs[0].render(mode=mode)
+        else:
+            return super().render(mode=mode)
 
     def close(self):
         return
@@ -172,10 +186,11 @@ class Task:
                  log_dir=None,
                  episode_life=True,
                  seed=np.random.randint(int(1e5)),
-                 frame_stack = 4):
+                 frame_stack = 4,
+                 clip_rewards = False):
         if log_dir is not None:
             mkdir(log_dir)
-        envs = [make_env(name, seed, i, log_dir, episode_life, frame_stack) for i in range(num_envs)]
+        envs = [make_env(name, seed, i, log_dir, episode_life, frame_stack, clip_rewards) for i in range(num_envs)]
         if single_process:
             Wrapper = DummyVecEnv
         else:
@@ -195,6 +210,9 @@ class Task:
 
     def reset(self):
         return self.env.reset()
+            
+    def render(self):
+        return self.env.render()
 
     def step(self, actions):
         if isinstance(self.action_space, Box):

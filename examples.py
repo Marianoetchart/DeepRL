@@ -5,7 +5,9 @@
 #######################################################################
 
 from deep_rl import *
+import DynamicMazeEnv
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+import evaluate_game
 
 # DQN
 def dqn_cart_pole():
@@ -39,41 +41,55 @@ def dqn_pixel_atari(name):
     config = Config()
     config.history_length = 4
     log_dir = get_default_log_dir(dqn_pixel_atari.__name__)
-    config.task_fn = lambda: Task(name, log_dir=log_dir, frame_stack = config.history_length)
+    config.task_fn = lambda: Task(name, log_dir=log_dir, frame_stack = config.history_length, clip_rewards=True)
     config.eval_env = Task(name, episode_life=False)
 
+    #config.optimizer_fn = lambda params: torch.optim.RMSprop(
+    #   params, lr=0.01, alpha=0.95, eps=0.01, centered=True)
+
     config.optimizer_fn = lambda params: torch.optim.RMSprop(
-        params, lr=0.00025, alpha=0.95, eps=0.01, centered=True)
-    #config.optimizer_schedule= lambda params: torch.optim.lr_scheduler(
-    #    optimizer, lr_lambda= [])
+        params, lr=0.01, momentum = 0.95)
+    config.lr = LinearSchedule(0.01, 0.00025, 1e6) # linear learning rate decay
+
     #config.optimizer_fn = lambda params: torch.optim.Adadelta(
     #    params, lr=0.1, rho = 0.95)
+    
+    #for Pong
+    #config.optimizer_fn = lambda params : torch.optim.Adam(params,lr = 0.0001 )
+
     #config.network_fn = lambda: VanillaNet(config.action_dim, NatureConvBody(in_channels=config.history_length))
     #config.network_fn = lambda: DuelingNet(config.action_dim, NatureConvBody(in_channels=config.history_length))
     config.network_fn = lambda: AttentionNet(config.action_dim, SpatialAttDRQNBody(in_channels=config.history_length))
-    config.random_action_prob = LinearSchedule(1.0, 0.1, 1e6) # changed this from 0.01 (DQN) to 0.1 
+    config.random_action_prob = LinearSchedule(1.0, 0.1, 1e6) # changed this from 0.01 (DQN) to 0.1 for DARQN
 
-    #config.replay_fn = lambda: Replay(memory_size=int(1e6), batch_size=32)
+    #config.replay_fn = lambda: Replay(memory_size=int(500000), batch_size=32)
     #config.replay_fn = lambda: AsyncReplay(memory_size=int(1e6), batch_size=32)
     config.replay_fn = lambda: AsyncReplay(memory_size=int(500000), batch_size=32)
 
+    config.flickering = False
+    config.eval_flickering = False
     config.async_actor = True
     config.batch_size = 32
     config.state_normalizer = ImageNormalizer()
     config.reward_normalizer = SignNormalizer()
     config.discount = 0.99
     config.target_network_update_freq = 10000
-    config.exploration_steps = 50000
+    config.exploration_steps = 1000
     config.sgd_update_frequency = 4
     config.gradient_clip = 10
     #config.double_q = True
     config.double_q = False
     config.max_steps = int(5e6)
     config.save_interval = 50000
-    config.eval_interval = 50000
-    config.eval_steps = 25000
-    config.tag = 'SpatAttDRQN-4SGD-Seaquest'#'DRQN-4SGD-CorrHidd-Seaquest'
+    config.eval_interval = 2000
+    config.eval_steps = 2000 #25000 #for pong 10k
+    #config.eval_episodes = 10
+    config.tag = 'SpatAtt-Seaquest-WithGradClp'#'DRQN-4SGDCorrHidd-50kexp'
     config.logger = get_logger(tag=dqn_pixel_atari.__name__)
+    
+    log = "/home/mariano/Documents/DeepRL-0.3/data/model-DQNAgent-PongNoFrameskip-v4-DQN - Pong.bin" 
+    #evaluate_game.evaluate_game(DQNAgent(config),log, name)
+    
     run_steps(DRQNAgent(config))
 
 # QR DQN
@@ -450,8 +466,8 @@ if __name__ == '__main__':
     mkdir('tf_log')
     set_one_thread()
     random_seed()
-    #select_device(-1) #cpu
-    select_device(0) # cuda 
+    select_device(-1) #cpu
+    #select_device(0) # cuda 
 
     # dqn_cart_pole()
     # quantile_regression_dqn_cart_pole()
@@ -465,6 +481,7 @@ if __name__ == '__main__':
     # ddpg_continuous('HalfCheetah-v2')
 
     game = 'SeaquestNoFrameskip-v0'
+    #game = 'CTMaze-v0'
     dqn_pixel_atari(game)
     # quantile_regression_dqn_pixel_atari(game)
     # categorical_dqn_pixel_atari(game)

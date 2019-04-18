@@ -5,6 +5,7 @@
 #######################################################################
 
 from .network_utils import *
+import time
 
 class NatureConvBody(nn.Module):
     def __init__(self, in_channels=4):
@@ -16,17 +17,11 @@ class NatureConvBody(nn.Module):
         self.fc4 = layer_init(nn.Linear(7 * 7 * 64, self.feature_dim))
 
     def forward(self, x):
-        print("First:",x.size())
         y = F.relu(self.conv1(x))
-        print("Second:",y.size())
         y = F.relu(self.conv2(y))
-        print("Third:",y.size())
         y = F.relu(self.conv3(y))
-        print("Fourth:",y.size())
         y = y.view(y.size(0), -1)
-        print("Fifth:",y.size())
         y = F.relu(self.fc4(y))
-        print("Sixth:",y.size())
         return y
 
 class DRQNBody(nn.Module):
@@ -35,12 +30,13 @@ class DRQNBody(nn.Module):
         self.feature_dim = 512
         self.rnn_input_dim = 7*7*64
         self.batch_size = 1
+        self.num_layers = 1
         self.unroll  = 4
         in_channels = 1 # for 1 frame input
         self.conv1 = layer_init(nn.Conv2d(in_channels, 32, kernel_size=8, stride=4))
         self.conv2 = layer_init(nn.Conv2d(32, 64, kernel_size=4, stride=2))
         self.conv3 = layer_init(nn.Conv2d(64, 64, kernel_size=3, stride=1))
-        self.lstm = nn.LSTM(self.rnn_input_dim, self.feature_dim , num_layers = 1)
+        self.lstm = nn.LSTM(self.rnn_input_dim, self.feature_dim , num_layers = self.num_layers)
         self.hidden = self.init_hidden()
         self.reset_flag = False
 
@@ -69,7 +65,7 @@ class DRQNBody(nn.Module):
         ycat = torch.Tensor()
         
         xchunks= torch.chunk(x,self.unroll, 1)
-        self.hidden = self.init_hidden(batch = batch)
+        self.hidden = self.init_hidden(num_layers=1, batch = batch)
 
         for ts in range(len(xchunks)):
             y = F.relu(self.conv1(xchunks[ts]))
@@ -78,12 +74,13 @@ class DRQNBody(nn.Module):
             y = y.view(batch, -1) # flattening
             #ycat = torch.cat((ycat, y), 0 )
         
-            ycat = y.view(-1, batch, self.rnn_input_dim)   # Adding dimention 
+            yinput = y.view(-1, batch, self.rnn_input_dim)   # Adding dimention 
             #print(ycat.size())
         #output_chunks = torch.chunk(ycat, self.unroll, 0)
         #for yt in range(len(output_chunks)):
             self.lstm.flatten_parameters()
-            output, self.hidden = self.lstm(ycat, self.hidden)#output_chunks[yt], self.hidden)
+            output, self.hidden = self.lstm(yinput, self.hidden)#output_chunks[yt], self.hidden)
+            #print(self.hidden[0].size())
             #data = [h.data for h in self.hidden]
             #print('Hiden', self.hidden)
             #print('output', output)
@@ -105,11 +102,12 @@ class SpatialAttDRQNBody(nn.Module):
         self.num_layers = 1
         self.unroll  = 4
         in_channels = 1 # for 1 column
-        self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=8, stride=4, bias= False)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2, bias = False)
-        self.conv3 = nn.Conv2d(64, 256, kernel_size=3, stride=1, bias  = False)
-        self.att1 = nn.Linear(self.feature_dim , self.feature_dim, bias= False)
-        self.att2 = nn.Linear(self.feature_dim, self.feature_dim, bias = False)
+        self.conv1 = layer_init(nn.Conv2d(in_channels, 32, kernel_size=8, stride=4))
+        self.conv2 = layer_init(nn.Conv2d(32, 64, kernel_size=4, stride=2))
+        self.conv3 = layer_init(nn.Conv2d(64, 256, kernel_size=3, stride=1))
+        self.att1 = nn.Conv2d(self.feature_dim, self.feature_dim, kernel_size=1, stride=1)
+        self.att2 = nn.Conv2d(self.feature_dim, self.feature_dim, kernel_size=1, stride=1)
+        self.w_hidden = nn.Linear(self.feature_dim, self.feature_dim, bias = False)
         self.lstm = nn.LSTM(self.rnn_input_dim, self.feature_dim, num_layers = self.num_layers)
         self.hidden = self.init_hidden()
         self.reset_flag = False
@@ -129,50 +127,90 @@ class SpatialAttDRQNBody(nn.Module):
         else:
             return tuple(self.repackage_hidden(state) for state in h)
 
+
     def forward(self, x):
         if self.reset_flag:
-            self.hidden = self.repackage_hidden(self.hidden)
+            #self.hidden = self.repackage_hidden(self.hidden)
             self.reset_flag = False
 
         batch = x.size(0)
-        output = torch.Tensor()
-        
         xchunks= torch.chunk(x,self.unroll, 1)
         self.hidden = self.init_hidden(num_layers = self.num_layers, batch = batch)
-        
+
         for ts in range(len(xchunks)):
+            torch.set_printoptions(threshold=50000)
+            #start2 = time.time()
             y = F.relu(self.conv1(xchunks[ts]))
             y = F.relu(self.conv2(y))
             y = F.relu(self.conv3(y)) 
-            y = y.view(batch, -1, self.feature_dim,).detach() # (batch) x 49 (input vector) x 256 (dimension)
-            hidden= self.hidden[0].view(batch,-1, self.feature_dim).detach() # reshaping hidden state
-            
+        
+            #y = y.view(batch, -1, self.feature_dim).detach() # (batch) x 49 (input vector) x 256 (dimension)
+            #print("Hidden state bfore reshaping", self.hidden[0].size())
+            hidden= self.hidden[0].view(batch,self.feature_dim).detach() # reshaping hidden state
+            #hidden= self.hidden[0].detach()
+            print("y before att1", y.size())
+            #end2 = time.time()
+            #start3 =time.time()
+ 
             # Attention Network
-            ht_1 = hidden
-            del hidden
+            ht_1 = self.w_hidden(hidden)
             xt_1 = self.att1(y)
+            print("y after att1",xt_1.size())
             #print("ht_1:", ht_1.size())
             #print("xt_1:", xt_1.size())
-            combined_att = ht_1 + xt_1.detach()
-            del ht_1, xt_1 
-            #print(combined_att.requires_grad)
-            combined_att = F.tanh(combined_att)
-            #print("comb_att:", combined_att.size())
-            combined_att2 = self.att2(combined_att.detach())
 
-            #print("comb_att2:", combined_att2.size())
-            goutput = F.softmax(combined_att2.detach(), dim=2)
-            del combined_att2, combined_att
-            #print("goutput:", goutput.size())
+            #print("ht_1 before", ht_1)
+            ht_1  = ht_1.unsqueeze(2).unsqueeze(3) #.view(batch,self.feature_dim,-1,1)
+            print("ht_1 after", ht_1.size())
+            #print("ht_1 after unsqueeze and view", ht_1.size())
+            ht_1 = ht_1.expand_as(xt_1)
+            print("ht_1 after expand", ht_1.size())
+            
+            #print(ht_1)
+            #print(xt_1)
+
+            #print("y", y.size())
+
+            combined_att = torch.add(ht_1, xt_1) 
+
+            #print(combined_att)
+            #print("After addition", combined_att.size())
+            combined_att = F.tanh(combined_att)
+            combined_att2 = self.att2(combined_att)
+            
+            combined_att2 = combined_att2.view(batch, self.feature_dim,-1)
+            #print("combined_att2 after reshape", combined_att2.size())
+            goutput = combined_att2.softmax(dim=2)#F.softmax(combined_att2, dim=1)
+            #print("goutput", goutput * 2)
             goutput = goutput.view(goutput.size(0),self.feature_dim, -1)
-            context = torch.bmm(goutput, y) # dot product 
-            del goutput, y 
+            #print("goutput after reshape - then context", goutput.size())
+            y = y.view(batch, self.feature_dim,-1)
+            #end3 = time.time()
+            #start = time.time()
+            #print("y input to context", y.size())
+
+            context = (goutput*y)
+            print("context", context.size())
+            context= context.sum(2)
+            print("context after sum", context)
+
+            #context = torch.bmm(goutput, y) # dot product 
+            #context = context / self.feature_dim
+            #end = time.time()
+            #context = y * context
             context = context.view(-1, batch, self.rnn_input_dim)   # Adding dimension for lstm 
+            #print("context after reshape", context.size())
             #self.hidden = self.repackage_hidden(self.hidden) # repackage hidden
-            self.lstm.flatten_parameters()
+            #self.lstm.flatten_parameters()
+            #start1 = time.time()
             output, self.hidden = self.lstm(context, self.hidden) #LSTM
-            del context
-        
+            #end1 = time.time()
+
+            #print("cnn:",(end2 - start2)* 100)
+            #print("att_layers:",(end3 - start3)* 100)
+            #print("bmm:",(end - start)* 100)
+            #print("lstm:",(end1 - start1)* 100)
+
         y = output.view(batch, -1) # flattens output
         return y
 

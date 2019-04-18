@@ -29,6 +29,10 @@ class DRQNActor(BaseActor):
         else:
             action = np.argmax(q_values)
         next_state, reward, done, info = self._task.step([action])
+        if self.config.eval_flickering: 
+                random_prob = torch.rand(0,1)
+                if random_prob > self.config.ob_prob:
+                    next_state = np.zeros_like(next_state)
         entry = [self._state[0], action, reward[0], next_state[0], int(done[0]), info]
         self._total_steps += 1
         self._state = next_state
@@ -38,6 +42,7 @@ class DRQNAgent(BaseAgent):
     def __init__(self, config):
         BaseAgent.__init__(self, config)
         self.config = config
+        self.task = config.task_fn()
         config.lock = mp.Lock()
 
         self.replay = config.replay_fn()
@@ -56,6 +61,7 @@ class DRQNAgent(BaseAgent):
         self.episode_num = 0 
 
         self.total_steps = 0
+        self.epoch = 0
         self.batch_indices = range_tensor(self.replay.batch_size)
 
     def close(self):
@@ -110,10 +116,32 @@ class DRQNAgent(BaseAgent):
             nn.utils.clip_grad_norm_(self.network.parameters(), self.config.gradient_clip)
             with config.lock:
                 self.optimizer.step()
-                del loss
                 if self.episode_num  % self.config.eval_episodes== 0:
                     self.target_network.body.reset_flag = True
+
+            if self.config.lr:
+                lr = self.config.lr(self.config.sgd_update_frequency)
+                self.adjust_lr(self.optimizer, lr)
                 
-        if self.total_steps / self.config.sgd_update_frequency % \
-                self.config.target_network_update_freq == 0:
+        if self.total_steps % self.config.target_network_update_freq == 0:
             self.target_network.load_state_dict(self.network.state_dict())
+
+        if self.config.eval_interval and not self.total_steps % self.config.eval_interval \
+                and self.total_steps != 0:
+            self.epoch =+ 1
+
+
+    def adjust_lr(self, optimizer, lr): 
+        #if self.epoch >= 20:
+        #    lr = 0.00025
+        #else: 
+        #    lr = 0.01 - (self.epoch * 0.0005)
+        lr = lr
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = lr
+
+
+
+            
+
+

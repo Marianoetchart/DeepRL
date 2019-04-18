@@ -60,17 +60,26 @@ class BaseAgent:
         self.config.state_normalizer.unset_read_only()
         return action         
 
-    def evaluate(self, steps=1):
+    def evaluate(self):
         config = self.config
-        for _ in range(steps):
+        self.evaluation_state = self.evaluation_env.reset()
+        self.evaluation_return = 0   
+        for _ in range(self.config.eval_steps):
             action = self.evaluation_action(self.evaluation_state)
             self.evaluation_state, reward, done, _ = self.evaluation_env.step(action)
+            if self.config.eval_flickering: 
+                random_prob = torch.rand(0,1)
+                if random_prob > self.config.ob_prob:
+                    self.evaluation_state = np.zeros_like(self.evaluation_state)
             self.evaluation_return += reward
             if done:
                 self.evalution_rewards.append(self.evaluation_return)
                 self.evaluation_state = self.evaluation_env.reset()
                 self.config.logger.info('evaluation episode return: %f' % (self.evaluation_return))
                 self.evaluation_return = 0   
+        if not done:
+            self.evalution_rewards.append(self.evaluation_return)
+            self.config.logger.info('evaluation episode return: %f' % (self.evaluation_return))
         eval_rewards = self.evalution_rewards
         self.evalution_rewards = [] 
         return eval_rewards

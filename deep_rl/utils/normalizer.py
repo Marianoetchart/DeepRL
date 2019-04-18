@@ -52,6 +52,7 @@ class RescaleNormalizer(BaseNormalizer):
                 x = np.asarray(x)
             else: 
                 x = np.asarray(x.cpu())
+    
         return self.coef * x
 
 class ImageNormalizer(RescaleNormalizer):

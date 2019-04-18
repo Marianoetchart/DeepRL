@@ -39,6 +39,7 @@ class DQNAgent(BaseAgent):
     def __init__(self, config):
         BaseAgent.__init__(self, config)
         self.config = config
+        self.task = config.task_fn()
         config.lock = mp.Lock()
 
         self.replay = config.replay_fn()

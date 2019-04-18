@@ -57,7 +57,11 @@ class Config():
         self.eval_episodes = 10
         self.eval_steps = 1
         self.eval_epsilon = 0.05
+        self.lr = None
         self.async_actor = True
+        self.eval_flickering = False
+        self.flickering = False
+        self.ob_prob = 0.5
 
     @property
     def eval_env(self):
