@@ -47,24 +47,24 @@ def dqn_pixel_atari(name):
     #config.optimizer_fn = lambda params: torch.optim.RMSprop(
     #   params, lr=0.01, alpha=0.95, eps=0.01, centered=True)
 
-    config.optimizer_fn = lambda params: torch.optim.RMSprop(
-        params, lr=0.01, momentum = 0.95)
-    config.lr = LinearSchedule(0.01, 0.00025, 1e6) # linear learning rate decay
+    #config.optimizer_fn = lambda params: torch.optim.RMSprop(
+    #    params, lr=0.01, momentum = 0.95)
+    #config.lr = LinearSchedule(0.01, 0.00025, 1e6) # linear learning rate decay
 
     #config.optimizer_fn = lambda params: torch.optim.Adadelta(
     #    params, lr=0.1, rho = 0.95)
     
     #for Pong
-    #config.optimizer_fn = lambda params : torch.optim.Adam(params,lr = 0.0001 )
+    config.optimizer_fn = lambda params : torch.optim.Adam(params,lr = 0.0001 )
 
     #config.network_fn = lambda: VanillaNet(config.action_dim, NatureConvBody(in_channels=config.history_length))
     #config.network_fn = lambda: DuelingNet(config.action_dim, NatureConvBody(in_channels=config.history_length))
     config.network_fn = lambda: AttentionNet(config.action_dim, SpatialAttDRQNBody(in_channels=config.history_length))
-    config.random_action_prob = LinearSchedule(1.0, 0.1, 1e6) # changed this from 0.01 (DQN) to 0.1 for DARQN
+    config.random_action_prob = LinearSchedule(1.0, 0.02, 1e6) # changed this from 0.01 (DQN) to 0.1 for DARQN
 
     #config.replay_fn = lambda: Replay(memory_size=int(500000), batch_size=32)
     #config.replay_fn = lambda: AsyncReplay(memory_size=int(1e6), batch_size=32)
-    config.replay_fn = lambda: AsyncReplay(memory_size=int(500000), batch_size=32)
+    config.replay_fn = lambda: AsyncReplay(memory_size=int(100000), batch_size=32)
 
     config.flickering = False
     config.eval_flickering = False
@@ -73,7 +73,7 @@ def dqn_pixel_atari(name):
     config.state_normalizer = ImageNormalizer()
     config.reward_normalizer = SignNormalizer()
     config.discount = 0.99
-    config.target_network_update_freq = 10000
+    config.target_network_update_freq = 1000
     config.exploration_steps = 50000
     config.sgd_update_frequency = 4
     config.gradient_clip = 10
@@ -82,9 +82,9 @@ def dqn_pixel_atari(name):
     config.max_steps = int(5e6)
     config.save_interval = 50000
     config.eval_interval = 50000
-    config.eval_steps = 25000 #25000 #for pong 10k
+    config.eval_steps = 10000 #25000 #for pong 10k
     #config.eval_episodes = 10
-    config.tag = 'SpatAtt-Seaquest-WithClip'#'DRQN-4SGDCorrHidd-50kexp'
+    config.tag = 'SpatAtt-Pong-WithClip(NewSA)'#'DRQN-4SGDCorrHidd-50kexp'
     config.logger = get_logger(tag=dqn_pixel_atari.__name__)
     
     log = "/home/mariano/Documents/DeepRL-0.3/data/model-DQNAgent-PongNoFrameskip-v4-DQN - Pong.bin" 
@@ -480,7 +480,7 @@ if __name__ == '__main__':
     # ppo_continuous('HalfCheetah-v2')
     # ddpg_continuous('HalfCheetah-v2')
 
-    game = 'SeaquestNoFrameskip-v0'
+    game = 'PongNoFrameskip-v4'
     #game = 'CTMaze-v0'
     dqn_pixel_atari(game)
     # quantile_regression_dqn_pixel_atari(game)
