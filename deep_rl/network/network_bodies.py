@@ -148,23 +148,23 @@ class SpatialAttDRQNBody(nn.Module):
             #print("Hidden state bfore reshaping", self.hidden[0].size())
             hidden= self.hidden[0].view(batch,self.feature_dim).detach() # reshaping hidden state
             #hidden= self.hidden[0].detach()
-            print("y before att1", y.size())
+            #print("y before att1", y.size())
             #end2 = time.time()
             #start3 =time.time()
  
             # Attention Network
             ht_1 = self.w_hidden(hidden)
             xt_1 = self.att1(y)
-            print("y after att1",xt_1.size())
+            #print("y after att1",xt_1.size())
             #print("ht_1:", ht_1.size())
             #print("xt_1:", xt_1.size())
 
             #print("ht_1 before", ht_1)
             ht_1  = ht_1.unsqueeze(2).unsqueeze(3) #.view(batch,self.feature_dim,-1,1)
-            print("ht_1 after", ht_1.size())
+            #print("ht_1 after", ht_1.size())
             #print("ht_1 after unsqueeze and view", ht_1.size())
             ht_1 = ht_1.expand_as(xt_1)
-            print("ht_1 after expand", ht_1.size())
+            #print("ht_1 after expand", ht_1.size())
             
             #print(ht_1)
             #print(xt_1)
@@ -190,9 +190,9 @@ class SpatialAttDRQNBody(nn.Module):
             #print("y input to context", y.size())
 
             context = (goutput*y)
-            print("context", context.size())
+            #print("context", context.size())
             context= context.sum(2)
-            print("context after sum", context)
+            #print("context after sum", context)
 
             #context = torch.bmm(goutput, y) # dot product 
             #context = context / self.feature_dim
