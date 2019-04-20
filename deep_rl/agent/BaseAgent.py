@@ -70,7 +70,7 @@ class BaseAgent:
             if self.config.eval_flickering: 
                 random_prob = random.uniform(0,1)
                 if random_prob > self.config.ob_prob:
-                     self.evaluation_state[0] = np.zeros_like(self.evaluation_state[0])
+                     self.evaluation_state[0] = np.zeros_like(self.evaluation_state[0]._frames)
                      print(self.evaluation_state[0]._frames)
             self.evaluation_return += reward
             if done:
