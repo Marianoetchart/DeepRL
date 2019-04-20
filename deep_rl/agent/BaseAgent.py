@@ -9,7 +9,7 @@ import numpy as np
 from ..utils import *
 import torch.multiprocessing as mp
 from collections import deque
-import sys
+import sys, random
 
 class BaseAgent:
     def __init__(self, config):
