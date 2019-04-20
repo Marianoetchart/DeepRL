@@ -81,7 +81,7 @@ def dqn_pixel_atari(name):
     config.double_q = False
     config.max_steps = int(5e6)
     config.save_interval = 50000
-    config.eval_interval = 50000
+    config.eval_interval = 5000
     config.eval_steps = 10000 #25000 #for pong 10k
     #config.eval_episodes = 10
     config.tag = 'SpatAtt-Pong-WithClip-Flickering'#'DRQN-4SGDCorrHidd-50kexp'
