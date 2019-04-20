@@ -74,14 +74,14 @@ def dqn_pixel_atari(name):
     config.reward_normalizer = SignNormalizer()
     config.discount = 0.99
     config.target_network_update_freq = 1000
-    config.exploration_steps = 5000
+    config.exploration_steps = 50000
     config.sgd_update_frequency = 4
     config.gradient_clip = 10
     #config.double_q = True
     config.double_q = False
     config.max_steps = int(5e6)
     config.save_interval = 50000
-    config.eval_interval = 5000
+    config.eval_interval = 50000
     config.eval_steps = 10000 #25000 #for pong 10k
     #config.eval_episodes = 10
     config.tag = 'SpatAtt-Pong-WithClip-Flickering'#'DRQN-4SGDCorrHidd-50kexp'
