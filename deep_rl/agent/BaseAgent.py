@@ -68,7 +68,7 @@ class BaseAgent:
             action = self.evaluation_action(self.evaluation_state)
             self.evaluation_state, reward, done, _ = self.evaluation_env.step(action)
             if self.config.eval_flickering: 
-                random_prob = torch.rand(0,1)
+                random_prob = random.uniform(0,1)
                 if random_prob > self.config.ob_prob:
                     self.evaluation_state = np.zeros_like(self.evaluation_state)
             self.evaluation_return += reward
