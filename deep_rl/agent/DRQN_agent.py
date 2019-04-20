@@ -127,10 +127,6 @@ class DRQNAgent(BaseAgent):
         if self.total_steps % self.config.target_network_update_freq == 0:
             self.target_network.load_state_dict(self.network.state_dict())
 
-        if self.config.eval_interval and not self.total_steps % self.config.eval_interval \
-                and self.total_steps != 0:
-            self.epoch =+ 1
-
 
     def adjust_lr(self, optimizer, lr): 
         #if self.epoch >= 20:
