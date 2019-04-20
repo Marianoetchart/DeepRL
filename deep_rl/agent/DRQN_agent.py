@@ -9,6 +9,7 @@ from ..component import *
 from ..utils import *
 import time
 from .BaseAgent import *
+import random
 
 class DRQNActor(BaseActor):
     def __init__(self, config):
