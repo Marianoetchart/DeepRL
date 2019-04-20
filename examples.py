@@ -67,7 +67,7 @@ def dqn_pixel_atari(name):
     config.replay_fn = lambda: AsyncReplay(memory_size=int(100000), batch_size=32)
 
     config.flickering = False
-    config.eval_flickering = False
+    config.eval_flickering = True
     config.async_actor = True
     config.batch_size = 32
     config.state_normalizer = ImageNormalizer()
@@ -84,7 +84,7 @@ def dqn_pixel_atari(name):
     config.eval_interval = 50000
     config.eval_steps = 10000 #25000 #for pong 10k
     #config.eval_episodes = 10
-    config.tag = 'SpatAtt-Pong-WithClip(NewSA)'#'DRQN-4SGDCorrHidd-50kexp'
+    config.tag = 'SpatAtt-Pong-WithClip-Flickering'#'DRQN-4SGDCorrHidd-50kexp'
     config.logger = get_logger(tag=dqn_pixel_atari.__name__)
     
     log = "/home/mariano/Documents/DeepRL-0.3/data/model-DQNAgent-PongNoFrameskip-v4-DQN - Pong.bin" 
