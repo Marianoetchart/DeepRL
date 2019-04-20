@@ -51,7 +51,6 @@ class RescaleNormalizer(BaseNormalizer):
             if type(x) == tuple or type(x) == list or type(x) == np.darray:
                 x = np.asarray(x)
             else:
-                print(type(x)) 
                 x = np.asarray(x.cpu())
     
         return self.coef * x
