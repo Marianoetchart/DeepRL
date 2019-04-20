@@ -31,7 +31,7 @@ class DRQNActor(BaseActor):
             action = np.argmax(q_values)
         next_state, reward, done, info = self._task.step([action])
         if self.config.eval_flickering: 
-                random_prob = random.unifrom(0,1)
+                random_prob = random.uniform(0,1)
                 if random_prob > self.config.ob_prob:
                     next_state = np.zeros_like(next_state)
         entry = [self._state[0], action, reward[0], next_state[0], int(done[0]), info]
