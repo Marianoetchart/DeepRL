@@ -19,6 +19,7 @@ class DRQNActor(BaseActor):
 
     def _transition(self):
         if self._state is None:
+            print("Resetting")
             self._state = self._task.reset()
         config = self.config
         with config.lock:
