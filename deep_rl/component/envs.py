@@ -128,6 +128,8 @@ class LazyFrames(object):
     def __getitem__(self, i):
         return self.__array__()[i]
 
+    
+
 
 class FrameStack(FrameStack_):
     def __init__(self, env, k):
