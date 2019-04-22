@@ -253,7 +253,7 @@ class SpatTempAttDRQNBody(nn.Module):
             hidden = self.hidden[0]
             hidden_temporal = self.w_temporal(hidden)
             hidden_temporal = F.tanh(torch.add(hidden,hidden_temporal)).softmax(dim = 2)
-            context_hidden = (hidden_temporal*hidden).sum(1) #inner product
+            context_hidden = (hidden_temporal*hidden).sum(0) #inner product
             context_hidden = context_hidden.unsqueeze(0) # adding dimension for layer_num
             self.hidden = (context_hidden, self.hidden[1]) # repackaging hidden state 
             output, self.hidden = self.lstm(context, self.hidden) #LSTM
