@@ -175,7 +175,7 @@ class SpatialAttDRQNBody(nn.Module):
 
 class SpatTempAttDRQNBody(nn.Module):
     def __init__(self, in_channels=4):
-        super(SpatialAttDRQNBody, self).__init__()
+        super(SpatTempAttDRQNBody, self).__init__()
         self.feature_dim = 256
         self.rnn_input_dim = 256
         self.batch_size = 1
