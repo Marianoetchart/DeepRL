@@ -466,8 +466,8 @@ if __name__ == '__main__':
     mkdir('tf_log')
     set_one_thread()
     random_seed()
-    #select_device(-1) #cpu
-    select_device(0) # cuda 
+    select_device(-1) #cpu
+    #select_device(0) # cuda 
 
     # dqn_cart_pole()
     # quantile_regression_dqn_cart_pole()

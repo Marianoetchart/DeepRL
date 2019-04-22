@@ -243,20 +243,22 @@ class SpatTempAttDRQNBody(nn.Module):
             y = y.view(batch, self.feature_dim,-1)
 
             context = (goutput*y)
+            print(context.size())
             context= context.sum(2)
+            print(context.size())
             
             #context = context / self.feature_dim
             #context = y * context
             context = context.view(-1, batch, self.rnn_input_dim)   # Adding dimension for lstm 
-            #self.hidden = self.repackage_hidden(self.hidden) # repackage hidden
 
             # Temporal Attention Network
-            hidden_temporal = self.w_temporal(self.hidden)
-            hidden_temporal = F.tanh(torch.add(self.hidden,hidden_temporal)).softmax(dim = 2)
-            hidden = self.hidden
-            context_hidden = (hidden_temporal*hidden).sum(2)
-            
-            output, self.hidden = self.lstm(context, context_hidden) #LSTM
+            hidden = self.hidden[0]
+            hidden_temporal = self.w_temporal(hidden)
+            hidden_temporal = F.tanh(torch.add(hidden,hidden_temporal)).softmax(dim = 2)
+            context_hidden = (hidden_temporal*hidden).sum(1) #inner product
+            context_hidden = context_hidden.unsqueeze(0) # adding dimension for layer_num
+            self.hidden = (context_hidden, self.hidden[1]) # repackaging hidden state 
+            output, self.hidden = self.lstm(context, self.hidden) #LSTM
 
         y = output.view(batch, -1) # flattens output
         return y
