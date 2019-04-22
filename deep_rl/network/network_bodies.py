@@ -243,9 +243,7 @@ class SpatTempAttDRQNBody(nn.Module):
             y = y.view(batch, self.feature_dim,-1)
 
             context = (goutput*y)
-            print(context.size())
             context= context.sum(2)
-            print(context.size())
             
             #context = context / self.feature_dim
             #context = y * context
