@@ -17,6 +17,7 @@ def evaluate_game(agent,log,name):
     while True:
         task.render()
         time.sleep(0.03)
+        time.sleep(10)
         #print(state.size())
         #value = agent.network(agent.config.state_normalizer(state)).flatten()
         value = agent.network(agent.config.state_normalizer(state))

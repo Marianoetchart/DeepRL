@@ -59,7 +59,7 @@ def dqn_pixel_atari(name):
 
     #config.network_fn = lambda: VanillaNet(config.action_dim, NatureConvBody(in_channels=config.history_length))
     #config.network_fn = lambda: DuelingNet(config.action_dim, NatureConvBody(in_channels=config.history_length))
-    config.network_fn = lambda: AttentionNet(config.action_dim, DRQNBody(in_channels=config.history_length))
+    config.network_fn = lambda: AttentionNet(config.action_dim, SpatTempAttDRQNBody(in_channels=config.history_length))
     config.random_action_prob = LinearSchedule(1.0, 0.02, 1e6) # changed this from 0.01 (DQN) to 0.1 for DARQN
 
     #config.replay_fn = lambda: Replay(memory_size=int(500000), batch_size=32)
@@ -67,7 +67,7 @@ def dqn_pixel_atari(name):
     config.replay_fn = lambda: AsyncReplay(memory_size=int(100000), batch_size=32)
 
     config.flickering = False
-    config.eval_flickering = True
+    config.eval_flickering = True 
     config.async_actor = True
     config.batch_size = 32
     config.state_normalizer = ImageNormalizer()
@@ -84,7 +84,7 @@ def dqn_pixel_atari(name):
     config.eval_interval = 50000
     config.eval_steps = 10000 #25000 #for pong 10k
     #config.eval_episodes = 10
-    config.tag = 'DRQN-Pong-WithClip-Flickering'#'DRQN-4SGDCorrHidd-50kexp'
+    config.tag = 'SpatTemp-Pong-Flickering'#'DRQN-4SGDCorrHidd-50kexp'
     config.logger = get_logger(tag=dqn_pixel_atari.__name__)
     
     log = "/home/mariano/Documents/DeepRL-0.3/data/model-DQNAgent-PongNoFrameskip-v4-DQN - Pong.bin" 
