@@ -153,7 +153,7 @@ def att_drqn_maze(name):
     #config.optimizer_fn = lambda params: torch.optim.RMSprop(params, lr=0.001, alpha=0.95, eps=0.01)
     # config.network_fn = lambda state_dim, action_dim: VanillaNet(action_dim, NatureConvBody())
     config.network_fn = lambda state_dim, action_dim: \
-            VanillaNet(action_dim,DRQNBody())
+            VanillaNet(action_dim,TempAttDRQNBody())
     config.policy_fn = lambda: GreedyPolicy(LinearSchedule(1.0, 0, 0.5e6))
     config.replay_fn = lambda: Replay(memory_size=int(1e6), batch_size=1)
     config.state_normalizer = ImageNormalizer()

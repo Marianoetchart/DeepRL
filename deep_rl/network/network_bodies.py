@@ -174,6 +174,71 @@ class SpatialAttDRQNBody(nn.Module):
         y = output.view(batch, -1) # flattens output
         return y
 
+class TempAttDRQNBody(nn.Module):
+	def __init__(self, in_channels=4):
+	    super(TempAttDRQNBody, self).__init__()
+	    self.feature_dim = 512
+	    self.rnn_input_dim = 7*7*64
+	    self.batch_size = 1
+	    self.num_layers = 1
+	    self.unroll = 4
+        in_channels = 1 # for 1 frame input
+        self.conv1 = layer_init(nn.Conv2d(in_channels, 32, kernel_size=8, stride=4))
+        self.conv2 = layer_init(nn.Conv2d(32, 64, kernel_size=4, stride=2))
+        self.conv3 = layer_init(nn.Conv2d(64, 64, kernel_size=3, stride=1))
+        self.w_temporal = nn.Linear(self.feature_dim, self.feature_dim, bias = False)
+        self.lstm = nn.LSTM(self.rnn_input_dim, self.feature_dim , num_layers = self.num_layers)
+        self.hidden = self.init_hidden()
+        self.reset_flag = False
+	
+	def init_hidden(self, num_layers = 1, batch = 1):
+        # initializing the hidden and cell states
+        if str(Config.DEVICE) == 'cpu':
+            return (autograd.Variable(torch.zeros(num_layers, batch,self.feature_dim)),
+            autograd.Variable(torch.zeros(num_layers, batch, self.feature_dim)))
+        else:
+            return (autograd.Variable(torch.zeros(num_layers, batch,self.feature_dim)).cuda(),
+            autograd.Variable(torch.zeros(num_layers, batch, self.feature_dim)).cuda())
+        
+	def repackage_hidden(self, h):
+        if isinstance(h, torch.Tensor):
+            return h.detach()
+        else:
+            return tuple(self.repackage_hidden(state) for state in h)
+        
+	def forward(self, x):
+        if self.reset_flag:
+            self.hidden = self.repackage_hidden(self.hidden)
+            self.reset_flag = False
+        
+        batch = x.size(0)
+        output = torch.Tensor()
+        ycat = torch.Tensor()
+        
+        xchunks= torch.chunk(x,self.unroll, 1)
+        self.hidden = self.init_hidden(num_layers=1, batch = batch)
+        
+        for ts in range(len(xchunks)):
+            y = F.relu(self.conv1(xchunks[ts]))
+            y = F.relu(self.conv2(y))
+            y = F.relu(self.conv3(y))
+            y = y.view(batch, -1) # flattening
+            
+            yinput = y.view(-1, batch, self.rnn_input_dim) # Adding dimention
+            #self.lstm.flatten_parameters()
+            
+            hidden = self.hidden[0]
+            hidden_temporal = self.w_temporal(hidden)
+            hidden_temporal = F.tanh(torch.add(hidden,hidden_temporal)).softmax(dim = 2)
+            context_hidden = (hidden_temporal*hidden).sum(0) #inner product
+            context_hidden = context_hidden.unsqueeze(0) # adding dimension for layer_num
+            self.hidden = (context_hidden, self.hidden[1]) # repackaging hidden state
+            
+            output, self.hidden = self.lstm(yinput, self.hidden)#output_chunks[yt], self.hidden)
+        
+        y = output.view(batch, -1)
+        return y
+
 class SpatTempAttDRQNBody(nn.Module):
     def __init__(self, in_channels=4):
         super(SpatTempAttDRQNBody, self).__init__()
