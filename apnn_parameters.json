@@ -1,0 +1,23 @@
+{
+  "alpha":5,
+  "beta":-0.05,
+  "modulation":0.00,
+  "tau_m":0.1,
+  "tau_E":8,
+  "a_learning_rate":0.0001,
+  "baseline_modulation":0.00,
+  "theta_low":0.1,
+  "theta_high":0.2,
+  "modulation_clip_change_episode_trigger":250000,
+  "Eligbility_traces_clip_min_before_change":-0.1,
+  "Eligbility_traces_clip_max_before_change":0.1,
+  "Eligbility_traces_clip_min_after_change":-0.1,
+  "Eligbility_traces_clip_max_after_change":0.1,
+  "Weight_clip_min_before_change":-0.05,
+  "Weight_clip_max_before_change":0.05,
+  "Weight_clip_min_after_change":-0.05,
+  "Weight_clip_max_after_change":0.05,
+  "baseline_modulation_after_change":-0.001,
+  "percent_of_top_features":0.1,
+  "percent_of_bottom_features":0.1
+}

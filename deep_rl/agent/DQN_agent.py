@@ -9,114 +9,114 @@ from ..component import *
 from ..utils import *
 import time
 from .BaseAgent import *
-from torch.nn import functional as F
-
-class DQNActor(BaseActor):
-    def __init__(self, config):
-        BaseActor.__init__(self, config)
-        self.config = config
-        self.start()
-
-    def _transition(self):
-        if self._state is None:
-            self._state = self._task.reset()
-        config = self.config
-        with config.lock:
-            q_values = self._network(config.state_normalizer(self._state))
-        q_values = to_np(q_values).flatten()
-        if self._total_steps < config.exploration_steps \
-                or np.random.rand() < config.random_action_prob():
-            action = np.random.randint(0, len(q_values))
-        else:
-            action = np.argmax(q_values)
-        next_state, reward, done, info = self._task.step([action])
-        if self.config.flickering: 
-            random_prob = random.uniform(0,1)
-            if random_prob > self.config.ob_prob:
-                next_state = np.zeros_like(next_state)
-        entry = [self._state[0], action, reward[0], next_state[0], int(done[0]), info]
-        self._total_steps += 1
-        self._state = next_state
-        return entry
+import numpy as np
+import time
+import scipy.io
 
 class DQNAgent(BaseAgent):
     def __init__(self, config):
         BaseAgent.__init__(self, config)
         self.config = config
         self.task = config.task_fn()
-        config.lock = mp.Lock()
-
-        self.replay = config.replay_fn()
-        self.actor = DQNActor(config)
-
-        self.network = config.network_fn()
-        self.network.share_memory()
-        self.target_network = config.network_fn()
-        self.target_network.load_state_dict(self.network.state_dict())
+        self.network = config.network_fn(self.task.state_dim, self.task.action_dim)
+        self.target_network = config.network_fn(self.task.state_dim, self.task.action_dim)
         self.optimizer = config.optimizer_fn(self.network.parameters())
-
-        self.actor.set_network(self.network)
-
-        self.episode_reward = 0
-        self.episode_rewards = []
-        self.episode_num = 0 
-
+        self.criterion = nn.MSELoss()
+        self.target_network.load_state_dict(self.network.state_dict())
+        self.replay = config.replay_fn()
+        self.policy = config.policy_fn()
         self.total_steps = 0
-        self.batch_indices = range_tensor(self.replay.batch_size)
+        self.features_detached_log=np.zeros((self.network.body.feature_dim))
+        self.value_log=np.zeros(self.task.action_dim)
+        self.reward_log=np.zeros(1)
+        self.step_log=np.zeros(1)
 
-    def close(self):
-        close_obj(self.replay)
-        close_obj(self.actor)
-
-    def eval_step(self, state):
-        self.config.state_normalizer.set_read_only()
-        state = self.config.state_normalizer(state)
-        q = self.network(state)
-        action = np.argmax(to_np(q))
-        self.config.state_normalizer.unset_read_only()
-        return action
-
-    def step(self):
-        config = self.config
-        transitions = self.actor.step()
-        experiences = []
-        for state, action, reward, next_state, done, _ in transitions:
-            self.episode_reward += reward
-            self.total_steps += 1
-            reward = config.reward_normalizer(reward)
-            if done:
-                self.episode_rewards.append(self.episode_reward)
-                self.episode_reward = 0
-                self.episode_num +=1
-            experiences.append([state, action, reward, next_state, done])
-        self.replay.feed_batch(experiences)
-
-        if self.total_steps > self.config.exploration_steps:
-            experiences = self.replay.sample()
-            states, actions, rewards, next_states, terminals = experiences
-            states = self.config.state_normalizer(states)
-            next_states = self.config.state_normalizer(next_states)
-            q_next = self.target_network(next_states).detach()
-            if self.config.double_q:
-                best_actions = torch.argmax(self.network(next_states), dim=-1)
-                q_next = q_next[self.batch_indices, best_actions]
+    def episode(self, deterministic=False, episode=0):
+        episode_start_time = time.time()
+        #print 'begin reset'
+        state = self.task.reset()[0]
+        state=np.expand_dims(state,axis=0)
+        total_reward = 0.0
+        steps = 0
+        #print('begin episode')
+        #print(state)
+        action_list=[]
+        while True:
+            value = self.network.predict(np.stack([self.config.state_normalizer(state)]), True).flatten()
+            if deterministic:
+                action = np.argmax(value)
+            elif self.total_steps < self.config.exploration_steps:
+                action = np.random.randint(0, len(value))
             else:
-                q_next = q_next.max(1)[0]
-            terminals = tensor(terminals)
-            rewards = tensor(rewards)
-            q_next = self.config.discount * q_next * (1 - terminals)
-            q_next.add_(rewards)
-            actions = tensor(actions).long()
-            q = self.network(states)
-            q = q[self.batch_indices, actions]
-            #loss = (q_next - q).pow(2).mul(0.5).mean()
-            loss = F.smooth_l1_loss(q, q_next)
-            self.optimizer.zero_grad()
-            loss.backward()
-            nn.utils.clip_grad_norm_(self.network.parameters(), self.config.gradient_clip)
-            with config.lock:
+                action = self.policy.sample(value)
+            #print 'call self.task.step(action)'
+            next_state, reward, done, info = self.task.step(action)
+            if(episode % 100 == 0):
+                #self.features_detached_log=np.vstack([self.features_detached_log,self.network.features_detached])
+                self.value_log=np.vstack([self.value_log,value])
+                self.reward_log=np.vstack([self.reward_log,reward])
+                self.step_log=np.vstack([self.step_log,steps])
+                scipy.io.savemat('features.mat',dict(features=self.features_detached_log))
+                scipy.io.savemat('value.mat',dict(value=self.value_log))
+                scipy.io.savemat('reward.mat',dict(reward=self.reward_log))
+                scipy.io.savemat('step.mat',dict(step=self.step_log))
+            #print(action)
+            action_list.append(action)
+            #print(info)
+            #print(next_state)
+            #print(done)
+            if len(next_state.shape)<3:
+                next_state=np.expand_dims(next_state,axis=0)
+            #print 'task step'
+            #if reward >0.5:
+            #    print(info)
+            #    print(reward)
+            #    print(action_list)
+             #   time.sleep(5)
+            total_reward += reward
+            reward = self.config.reward_normalizer(reward)
+            if not deterministic:
+                self.replay.feed([state, action, reward, next_state, int(done)])
+                self.total_steps += 1
+            steps += 1
+            state = next_state
+            #print 'learning'
+            if not deterministic and self.total_steps > self.config.exploration_steps \
+                    and self.total_steps % self.config.sgd_update_frequency == 0:
+                experiences = self.replay.sample()
+                states, actions, rewards, next_states, terminals = experiences
+                states = self.config.state_normalizer(states)
+                next_states = self.config.state_normalizer(next_states)
+                q_next = self.target_network.predict(next_states, False).detach()
+                if self.config.double_q:
+                    _, best_actions = self.network.predict(next_states).detach().max(1)
+                    q_next = q_next.gather(1, best_actions.unsqueeze(1)).squeeze(1)
+                else:
+                    q_next, _ = q_next.max(1)
+                terminals = tensor(terminals)
+                rewards = tensor(rewards)
+                q_next = self.config.discount * q_next * (1 - terminals)
+                q_next.add_(rewards)
+                actions = tensor(actions).unsqueeze(1).long()
+                q = self.network.predict(states, False)
+                q = q.gather(1, actions).squeeze(1)
+                loss = self.criterion(q, q_next)
+                self.optimizer.zero_grad()
+                loss.backward()
+                nn.utils.clip_grad_norm_(self.network.parameters(), self.config.gradient_clip)
                 self.optimizer.step()
+            #print 'self evaluate'
+            self.evaluate()
+            if not deterministic and self.total_steps % self.config.target_network_update_freq == 0:
+                self.target_network.load_state_dict(self.network.state_dict())
+            if not deterministic and self.total_steps > self.config.exploration_steps:
+                self.policy.update_epsilon()
+            #print 'chekc is done'
+            if done:
+                #print 'end eposide'
+                break
 
-        if self.total_steps / self.config.sgd_update_frequency % \
-                self.config.target_network_update_freq == 0:
-            self.target_network.load_state_dict(self.network.state_dict())
+        episode_time = time.time() - episode_start_time
+        self.config.logger.debug('episode steps %d, episode time %f, time per step %f' %
+                          (steps, episode_time, episode_time / float(steps)))
+        return total_reward, steps

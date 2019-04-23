@@ -12,22 +12,23 @@ class OptionCriticAgent(BaseAgent):
         BaseAgent.__init__(self, config)
         self.config = config
         self.task = config.task_fn()
-        self.network = config.network_fn()
-        self.target_network = config.network_fn()
+        self.network = config.network_fn(self.task.state_dim, self.task.action_dim)
+        self.target_network = config.network_fn(self.task.state_dim, self.task.action_dim)
         self.optimizer = config.optimizer_fn(self.network.parameters())
         self.target_network.load_state_dict(self.network.state_dict())
+        self.policy = config.policy_fn()
 
-        self.online_rewards = np.zeros(config.num_workers)
-        self.episode_rewards = []
+        self.episode_rewards = np.zeros(config.num_workers)
+        self.last_episode_rewards = np.zeros(config.num_workers)
 
         self.total_steps = 0
         states = self.config.state_normalizer(self.task.reset())
-        self.q_options, self.betas, self.log_pi = self.network(states)
-        self.options = epsilon_greedy(config.random_option_prob(config.num_workers), to_np(self.q_options))
+        self.q_options, self.betas, self.log_pi = self.network.predict(states)
+        self.options = np.asarray([self.policy.sample(q) for q in self.q_options.detach().cpu().numpy()])
         self.is_initial_betas = np.ones(self.config.num_workers)
         self.prev_options = np.copy(self.options)
 
-    def step(self):
+    def iteration(self):
         config = self.config
         rollout = []
 
@@ -40,9 +41,9 @@ class OptionCriticAgent(BaseAgent):
             actions = dist.sample()
             next_states, rewards, terminals, _ = self.task.step(actions.cpu().detach().numpy().flatten())
             next_states = config.state_normalizer(next_states)
-            self.online_rewards += rewards
+            self.episode_rewards += rewards
             rewards = config.reward_normalizer(rewards)
-            q_options_next, betas_next, log_pi_next = self.network(next_states)
+            q_options_next, betas_next, log_pi_next = self.network.predict(next_states)
             rollout.append([q_options, betas, options, self.prev_options, rewards, 1 - terminals, np.copy(self.is_initial_betas), intra_log_pi, actions])
             self.is_initial_betas = np.asarray(terminals, dtype=np.float32)
 
@@ -50,20 +51,20 @@ class OptionCriticAgent(BaseAgent):
             np_betas_next = betas_next.gather(1, var_options.unsqueeze(1)).cpu().detach().numpy().flatten()
             options_next = np.copy(options)
             dice = np.random.rand(len(options_next))
-            epsilon = config.random_option_prob(config.num_workers)
             for j in range(len(dice)):
                 if dice[j] < np_betas_next[j] or terminals[j]:
-                    options_next[j] = epsilon_greedy(epsilon, np_q_options_next[j])
+                    options_next[j] = self.policy.sample(np_q_options_next[j])
             for i, terminal in enumerate(terminals):
                 if terminals[i]:
-                    self.episode_rewards.append(self.online_rewards[i])
-                    self.online_rewards[i] = 0
+                    self.last_episode_rewards[i] = self.episode_rewards[i]
+                    self.episode_rewards[i] = 0
             self.prev_options = options
             options = options_next
             q_options = q_options_next
             betas = betas_next
             log_pi = log_pi_next
 
+            self.policy.update_epsilon(config.num_workers)
             self.total_steps += config.num_workers
             if self.total_steps / config.num_workers % config.target_network_update_freq == 0:
                 self.target_network.load_state_dict(self.network.state_dict())
@@ -73,7 +74,7 @@ class OptionCriticAgent(BaseAgent):
         self.betas = betas
         self.log_pi = log_pi
 
-        target_q_options, _, _ = self.target_network(next_states)
+        target_q_options, _, _ = self.target_network.predict(next_states)
         prev_options = tensor(self.prev_options).long().unsqueeze(1)
         betas_prev_options = betas.gather(1, prev_options)
 

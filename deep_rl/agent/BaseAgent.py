@@ -7,21 +7,20 @@
 import torch
 import numpy as np
 from ..utils import *
-import torch.multiprocessing as mp
-from collections import deque
-import sys, random
 
 class BaseAgent:
     def __init__(self, config):
         self.config = config
-        self.evaluation_env = self.config.eval_env
+        self.evaluation_env = self.config.evaluation_env
         if self.evaluation_env is not None:
             self.evaluation_state = self.evaluation_env.reset()
             self.evaluation_return = 0
-            self.evalution_rewards = []
 
     def close(self):
-        close_obj(self.task)
+        if hasattr(self.task, 'close'):
+            self.task.close()
+        if hasattr(self.evaluation_env, 'close'):
+            self.evaluation_env.close()
 
     def save(self, filename):
         torch.save(self.network.state_dict(), filename)
@@ -30,133 +29,44 @@ class BaseAgent:
         state_dict = torch.load(filename, map_location=lambda storage, loc: storage)
         self.network.load_state_dict(state_dict)
 
-    def eval_step(self, state):
-        raise Exception('eval_step not implemented')
+    def evaluation_action(self, state):
+        self.config.state_normalizer.set_read_only()
+        state = self.config.state_normalizer(np.stack([state]))
+        action = self.network.predict(state, to_numpy=True)
+        self.config.state_normalizer.unset_read_only()
+        return np.argmax(action.flatten())
 
-    def eval_episode(self):
-        env = self.config.eval_env
+    def deterministic_episode(self):
+        env = self.config.evaluation_env
         state = env.reset()
         total_rewards = 0
         while True:
-            action = self.eval_step(state)
-            state, reward, done, _ = env.step([action])
-            total_rewards += reward[0]
-            if done[0]:
+            action = self.evaluation_action(state)
+            state, reward, done, _ = env.step(action)
+            total_rewards += reward
+            if done:
                 break
         return total_rewards
 
-    def eval_episodes(self):
+    def evaluation_episodes(self):
+        interval = self.config.evaluation_episodes_interval
+        if not interval or self.total_steps % interval:
+            return
         rewards = []
-        for ep in range(self.config.eval_episodes):
-            rewards.append(self.eval_episode())
+        for ep in range(self.config.evaluation_episodes):
+            rewards.append(self.deterministic_episode())
         self.config.logger.info('evaluation episode return: %f(%f)' % (
             np.mean(rewards), np.std(rewards) / np.sqrt(len(rewards))))
- 
-    def evaluation_action(self, state):
-        self.config.state_normalizer.set_read_only()
-        state = self.config.state_normalizer(state)
-        q = self.network(state)
-        action = epsilon_greedy(self.config.eval_epsilon, to_np(q))
-        self.config.state_normalizer.unset_read_only()
-        return action         
 
-    def evaluate(self):
+    def evaluate(self, steps=1):
         config = self.config
-        self.evaluation_state = self.evaluation_env.reset()
-        self.evaluation_return = 0   
-        for _ in range(self.config.eval_steps):
+        if config.evaluation_env is None or self.config.evaluation_episodes_interval:
+            return
+        for _ in range(steps):
             action = self.evaluation_action(self.evaluation_state)
             self.evaluation_state, reward, done, _ = self.evaluation_env.step(action)
-            if self.config.eval_flickering: 
-                random_prob = random.uniform(0,1)
-                if random_prob > self.config.ob_prob:
-                     self.evaluation_state = np.zeros_like(self.evaluation_state)
-                     #print(self.evaluation_state)
             self.evaluation_return += reward
             if done:
-                self.evalution_rewards.append(self.evaluation_return)
                 self.evaluation_state = self.evaluation_env.reset()
                 self.config.logger.info('evaluation episode return: %f' % (self.evaluation_return))
-                self.evaluation_return = 0   
-        if not done:
-            self.evalution_rewards.append(self.evaluation_return)
-            self.config.logger.info('evaluation episode return: %f' % (self.evaluation_return))
-        eval_rewards = self.evalution_rewards
-        self.evalution_rewards = [] 
-        return eval_rewards
-    
-
-class BaseActor(mp.Process):
-    STEP = 0
-    RESET = 1
-    EXIT = 2
-    SPECS = 3
-    NETWORK = 4
-    CACHE = 5
-
-    def __init__(self, config):
-        mp.Process.__init__(self)
-        self.config = config
-        self.__pipe, self.__worker_pipe = mp.Pipe()
-
-        self._state = None
-        self._task = None
-        self._network = None
-        self._total_steps = 0
-        self.__cache_len = 2
-
-        if not config.async_actor:
-            self.start = lambda: None
-            self.step = self._sample
-            self.close = lambda: None
-            self._set_up()
-            self._task = config.task_fn()
-
-    def _sample(self):
-        transitions = []
-        for _ in range(self.config.sgd_update_frequency):
-            transitions.append(self._transition())
-        return transitions
-
-    def run(self):
-        self._set_up()
-        torch.cuda.is_available()
-        config = self.config
-        self._task = config.task_fn()
-
-        cache = deque([], maxlen=2)
-        while True:
-            op, data = self.__worker_pipe.recv()
-            if op == self.STEP:
-                if not len(cache):
-                    cache.append(self._sample())
-                    cache.append(self._sample())
-                self.__worker_pipe.send(cache.popleft())
-                cache.append(self._sample())
-            elif op == self.EXIT:
-                self.__worker_pipe.close()
-                return
-            elif op == self.NETWORK:
-                self._network = data
-            else:
-                raise Exception('Unknown command')
-
-    def _transition(self):
-        raise Exception('Not implemented')
-
-    def _set_up(self):
-        pass
-
-    def step(self):
-        self.__pipe.send([self.STEP, None])
-        return self.__pipe.recv()
-
-    def close(self):
-        self.__pipe.send([self.EXIT, None])
-        self.__pipe.close()
-
-    def set_network(self, net):
-        if not self.config.async_actor:
-            self._network = net
-        else:
-            self.__pipe.send([self.NETWORK, net])
+                self.evaluation_return = 0
