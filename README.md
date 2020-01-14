@@ -1,17 +1,17 @@
 # DeepRL
 
 
-Deep Reinforcement learning with attention and recurrency. Extended version of the Modularized implementation of popular deep RL algorithms on PyTorch by ShangtongZhang (https://github.com/ShangtongZhang/DeepRL).
+Deep Reinforcement learning with attention and recurrency for POMDPs.
 
-Majority of work done in private gitlab repo of Loughborough University Comp Sci Department. 
-
-Additional Implemented algorithms:
+Implemented algorithms in project:
 * (Double/Dueling) Deep Recurrent Q-Learning (DRQN)
 * (Double/Dueling) Deep Recurrent Q-Learning with Spatial Attention 
 * (Double/Dueling) Deep Recurrent Q-Learning with Temporal Attention 
 * (Double/Dueling) Deep Recurrent Q-Learning with Spatio-Temporal Attention 
 
 Refer to https://github.com/ShangtongZhang/DeepRL if any other algorithm other than the ones above are used. 
+
+*Acknowledgments*: Majority of work done in private gitlab repo of Loughborough University Comp Sci Department where most compute processing took place. 
 
 # Dependency
 * MacOS 10.12 or Ubuntu 16.04
@@ -26,24 +26,6 @@ Refer to https://github.com/ShangtongZhang/DeepRL if any other algorithm other t
 
 ```Dockerfile``` contains a perfect environment, highly recommended 
 
-
-# Curves
-
-## BreakoutNoFrameskip-v4
-
-![Loading...](https://raw.githubusercontent.com/ShangtongZhang/DeepRL/master/images/breakout.png)
-
-* This is my synchronous option-critic implementation, not the original one.
-* The curves are not directly comparable, as many hyper-parameters are different.
-
-## Mujoco 
-
-* DDPG evaluation performance.
-![Loading...](https://raw.githubusercontent.com/ShangtongZhang/DeepRL/master/images/DDPG.png)
-
-
-* PPO online performance. 
-![Loading...](https://raw.githubusercontent.com/ShangtongZhang/DeepRL/master/images/PPO.png)
 
 
 # References
